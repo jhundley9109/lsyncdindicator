@@ -7,7 +7,6 @@ import sys
 import os
 import re
 
-
 class LsyncdIndicator:
     def __init__(self):
         self.ind = AppIndicator.Indicator.new_with_path(
@@ -18,6 +17,8 @@ class LsyncdIndicator:
         self.menu_setup()
         self.ind.set_menu(self.menu)
         self.ind.set_property('label-guide', 'LSYNCD')
+        self.lastSeekPosition = 0
+        self.syncQueue = [];
 
     def menu_setup(self):
         self.menu = Gtk.Menu()
@@ -29,7 +30,7 @@ class LsyncdIndicator:
 
     def main(self):
         self.logfile = open('/var/log/lsyncd/lsyncd.log', mode='rb')
-        GLib.timeout_add(250, self.monitor_lsyncd)
+        GLib.timeout_add(150, self.monitor_lsyncd)
         GLib.MainLoop().run()
 
     def quit(self, menuObj):
@@ -37,22 +38,28 @@ class LsyncdIndicator:
         sys.exit(0)
 
     def monitor_lsyncd(self):
-        lastLine = self.tail3()
+        lastLine = self.tail_log()
+        if (lastLine == ''):
+            return True
 
+        lineType = self.get_type_of_line(lastLine)
+        print ("printing the sync queue: " + lineType, self.syncQueue)
         # Found a match that a sync is happening
-        if (re.search('exitcode: 0$', lastLine) or re.search('finished\.$', lastLine)):
+        if (lineType == 'FINISHED' and len(self.syncQueue) == 0):
             self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             self.ind.set_icon('bluespinner')
             self.ind.set_label('idle', 'LSYNCD')
-        elif (re.search('/$', lastLine) or re.search('[\*\w]\.\w+$', lastLine)):
+        elif (lineType == 'FINISHED' and len(self.syncQueue) > 0):
+            "do nothing"
+        elif (lineType == 'SYNCING'):
             self.ind.set_icon('greenspinner')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
             self.ind.set_label('sync', 'LSYNCD')
-        elif (re.search('TERM signal, fading ---', lastLine)):
+        elif (lineType == 'LSYNCD TERMINATED'):
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
             self.ind.set_label('no lsyncd', 'LSYNCD')
-        elif (re.search('error|Error', lastLine)):
+        elif (lineType == 'ERROR'):
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
             self.ind.set_label('error', 'LSYNCD')
@@ -61,20 +68,50 @@ class LsyncdIndicator:
 
         return True
 
-    def tail3(self, lines=1):
+    def tail_log(self, lines=1):
         f = self.logfile
-        f.seek(0, 2)
-        f.seek(-200, 1)
+        amountToSeek = 0
+        if (self.lastSeekPosition != f.seek(0, 2)):
+            amountToSeek = f.tell() - self.lastSeekPosition
+            self.lastSeekPosition = f.tell()
+
+        print (self.lastSeekPosition, f.seek(0, 2), amountToSeek)
+        if (self.lastSeekPosition != amountToSeek):
+            f.seek(-amountToSeek - 1, 1)
+
         line = f.readline().decode()
         lastLine = line
         while line != '':
             line = f.readline().decode()
+            # print ("line is: " + line)
             if (line == ''):
                 break
             else:
                 lastLine = line
+                self.lastSeekPosition = f.tell()
+                lineType = self.get_type_of_line(line);
+                if (lineType == 'FINISHED' and len(self.syncQueue) > 0):
+                    self.syncQueue.pop()
+                elif (lineType == 'STARTING SYNC'):
+                    self.syncQueue.append(lineType)
+
+        print ("last seek position " + str(self.lastSeekPosition), self.syncQueue)
 
         return lastLine.rstrip()
+
+    def get_type_of_line(self, lastLine):
+        if (re.search('exitcode: 0$', lastLine) or re.search('finished\.$', lastLine)):
+            return 'FINISHED'
+        elif (re.search('Calling rsync with', lastLine) or re.search('recursive startup rsync', lastLine)):
+            return 'STARTING SYNC'
+        elif (re.search('/$', lastLine) or re.search('[\*\w]\.\w+$', lastLine)):
+            return 'SYNCING'
+        elif (re.search('TERM signal, fading ---', lastLine)):
+            return 'LSYNCD TERMINATED'
+        elif (re.search('error|Error', lastLine)):
+            return 'ERROR'
+        else:
+            return 'UNKNOWN'
 
 if __name__ == "__main__":
     indicator = LsyncdIndicator()
