@@ -18,7 +18,8 @@ class LsyncdIndicator:
         self.ind.set_menu(self.menu)
         self.ind.set_property('label-guide', 'LSYNCD')
         self.lastSeekPosition = 0
-        self.syncQueue = [];
+        self.syncQueue = []
+        self.lastLineType = ''
 
     def menu_setup(self):
         self.menu = Gtk.Menu()
@@ -42,24 +43,23 @@ class LsyncdIndicator:
         if (lastLine == ''):
             return True
 
-        lineType = self.get_type_of_line(lastLine)
-        print ("printing the sync queue: " + lineType, self.syncQueue)
+        print ("printing the sync queue: " + self.lineType, self.syncQueue)
         # Found a match that a sync is happening
-        if (lineType == 'FINISHED' and len(self.syncQueue) == 0):
+        if (self.lineType == 'FINISHED' and len(self.syncQueue) == 0):
             self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             self.ind.set_icon('bluespinner')
             self.ind.set_label('idle', 'LSYNCD')
-        elif (lineType == 'FINISHED' and len(self.syncQueue) > 0):
+        elif (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
             pass
-        elif (lineType == 'SYNCING'):
+        elif (self.lineType == 'SYNCING'):
             self.ind.set_icon('greenspinner')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
             self.ind.set_label('sync', 'LSYNCD')
-        elif (lineType == 'LSYNCD TERMINATED'):
+        elif (self.lineType == 'LSYNCD TERMINATED'):
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
             self.ind.set_label('no lsyncd', 'LSYNCD')
-        elif (lineType == 'ERROR'):
+        elif (self.lineType == 'ERROR'):
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
             self.ind.set_label('error', 'LSYNCD')
@@ -92,11 +92,11 @@ class LsyncdIndicator:
             else:
                 lastLine = line
                 self.lastSeekPosition = f.tell()
-                lineType = self.get_type_of_line(line);
-                if (lineType == 'FINISHED' and len(self.syncQueue) > 0):
+                self.lineType = self.get_type_of_line(line);
+                if (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
                     self.syncQueue.pop()
-                elif (lineType == 'STARTING SYNC'):
-                    self.syncQueue.append(lineType)
+                elif (self.lineType == 'STARTING SYNC'):
+                    self.syncQueue.append(self.lineType)
 
         # print ("last seek position " + str(self.lastSeekPosition), self.syncQueue)
 
