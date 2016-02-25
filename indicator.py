@@ -50,7 +50,7 @@ class LsyncdIndicator:
             self.ind.set_icon('bluespinner')
             self.ind.set_label('idle', 'LSYNCD')
         elif (lineType == 'FINISHED' and len(self.syncQueue) > 0):
-            "do nothing"
+            pass
         elif (lineType == 'SYNCING'):
             self.ind.set_icon('greenspinner')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
@@ -75,9 +75,12 @@ class LsyncdIndicator:
             amountToSeek = f.tell() - self.lastSeekPosition
             self.lastSeekPosition = f.tell()
 
-        print (self.lastSeekPosition, f.seek(0, 2), amountToSeek)
+        # print (self.lastSeekPosition, f.seek(0, 2), amountToSeek)
+        # If this is the first run, the amount to seek will be the entire file.
         if (self.lastSeekPosition != amountToSeek):
             f.seek(-amountToSeek - 1, 1)
+        else:
+            f.seek(-200, 1)
 
         line = f.readline().decode()
         lastLine = line
@@ -95,7 +98,7 @@ class LsyncdIndicator:
                 elif (lineType == 'STARTING SYNC'):
                     self.syncQueue.append(lineType)
 
-        print ("last seek position " + str(self.lastSeekPosition), self.syncQueue)
+        # print ("last seek position " + str(self.lastSeekPosition), self.syncQueue)
 
         return lastLine.rstrip()
 
