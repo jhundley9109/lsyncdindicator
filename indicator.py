@@ -69,38 +69,34 @@ class LsyncdIndicator:
         return True
 
     def tail_log(self, lines=1):
-        f = self.logfile
+        # Keep track of the number of bytes has been written to the log file since the last loop
         amountToSeek = 0
-        if (self.lastSeekPosition != f.seek(0, 2)):
-            amountToSeek = f.tell() - self.lastSeekPosition
-            self.lastSeekPosition = f.tell()
+        endOfFileByte = self.logfile.seek(0, 2)
+        if (self.lastSeekPosition != endOfFileByte):
+            amountToSeek = self.logfile.tell() - self.lastSeekPosition
+            self.lastSeekPosition = self.logfile.tell()
 
-        # print (self.lastSeekPosition, f.seek(0, 2), amountToSeek)
+        # print (self.lastSeekPosition, endOfFileByte, amountToSeek)
         # If this is the first run, the amount to seek will be the entire file.
         if (self.lastSeekPosition != amountToSeek):
-            f.seek(-amountToSeek - 1, 1)
-        else:
-            f.seek(-200, 1)
+            self.logfile.seek(-amountToSeek, 1)
+        elif (self.lastSeekPosition == amountToSeek):
+            self.logfile.seek(-200, 2)
 
-        line = f.readline().decode()
+        line = self.logfile.readline().decode().rstrip()
         lastLine = line
         while line != '':
-            line = f.readline().decode()
-            # print ("line is: " + line)
-            if (line == ''):
-                break
-            else:
-                lastLine = line
-                self.lastSeekPosition = f.tell()
-                self.lineType = self.get_type_of_line(line);
-                if (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
-                    self.syncQueue.pop()
-                elif (self.lineType == 'STARTING SYNC'):
-                    self.syncQueue.append(self.lineType)
+            lastLine = line
+            self.lastSeekPosition = self.logfile.tell()
+            self.lineType = self.get_type_of_line(line);
+            if (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
+                self.syncQueue.pop()
+            elif (self.lineType == 'STARTING SYNC'):
+                self.syncQueue.append(self.lineType)
 
-        # print ("last seek position " + str(self.lastSeekPosition), self.syncQueue)
+            line = self.logfile.readline().decode().rstrip()
 
-        return lastLine.rstrip()
+        return lastLine
 
     def get_type_of_line(self, lastLine):
         if (re.search('exitcode: 0$', lastLine) or re.search('finished\.$', lastLine)):
