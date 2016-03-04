@@ -6,6 +6,22 @@ from gi.repository import AppIndicator3 as AppIndicator
 import sys
 import os
 import re
+import logging
+import math
+import argparse
+
+parser = argparse.ArgumentParser(description='Initialize a unity lsyncd indicator')
+parser.add_argument('-l', '--loglevel', dest='loglevel', help='Options: DEBUG, INFO, WARNING, ERROR, CRITCAL')
+args = parser.parse_args()
+
+numeric_level = 0
+if (args.loglevel):
+    numeric_level = getattr(logging, args.loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        print ("Incorrect parameter for loglevel. Defaulting to WARNING")
+        numeric_level = 30 # Default to warnings
+
+logging.basicConfig(level=numeric_level)
 
 class LsyncdIndicator:
     def __init__(self):
@@ -16,10 +32,10 @@ class LsyncdIndicator:
             os.path.dirname(os.path.realpath(__file__)) + '/icons/')
         self.menu_setup()
         self.ind.set_menu(self.menu)
-        self.ind.set_property('label-guide', 'LSYNCD')
         self.lastSeekPosition = 0
         self.syncQueue = []
         self.lastLineType = ''
+        self.indicatorIconIndex = 1
 
     def menu_setup(self):
         self.menu = Gtk.Menu()
@@ -40,33 +56,35 @@ class LsyncdIndicator:
 
     def monitor_lsyncd(self):
         lastLine = self.tail_log()
-        if (lastLine == ''):
-            return True
+        self.update_indicator_index()
 
-        print ("printing the sync queue: " + self.lineType, self.syncQueue)
+        logging.debug("Queue: " + self.lineType + " " + str(self.syncQueue))
+
         # Found a match that a sync is happening
         if (self.lineType == 'FINISHED' and len(self.syncQueue) == 0):
             self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-            self.ind.set_icon('bluespinner')
-            self.ind.set_label('idle', 'LSYNCD')
+            self.ind.set_icon('bluespinner' + str(math.ceil(self.indicatorIconIndex / 4)))
         elif (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
             pass
         elif (self.lineType == 'SYNCING'):
-            self.ind.set_icon('greenspinner')
+            self.ind.set_icon('greenspinner' + str(math.ceil(self.indicatorIconIndex % 4) + 1))
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
-            self.ind.set_label('sync', 'LSYNCD')
         elif (self.lineType == 'LSYNCD TERMINATED'):
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
-            self.ind.set_label('no lsyncd', 'LSYNCD')
         elif (self.lineType == 'ERROR'):
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
-            self.ind.set_label('error', 'LSYNCD')
         else:
-            print ("unknown something happening. Update some regular expressions")
+            logging.warning("unknown something happening. Update some regular expressions")
 
         return True
+
+    def update_indicator_index(self):
+        if (self.indicatorIconIndex >= 16):
+            self.indicatorIconIndex = 1
+        else:
+            self.indicatorIconIndex = self.indicatorIconIndex + 1
 
     def tail_log(self, lines=1):
         # Keep track of the number of bytes has been written to the log file since the last loop
@@ -76,7 +94,6 @@ class LsyncdIndicator:
             amountToSeek = self.logfile.tell() - self.lastSeekPosition
             self.lastSeekPosition = self.logfile.tell()
 
-        # print (self.lastSeekPosition, endOfFileByte, amountToSeek)
         # If this is the first run, the amount to seek will be the entire file.
         if (self.lastSeekPosition != amountToSeek):
             self.logfile.seek(-amountToSeek, 1)
