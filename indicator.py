@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description='Initialize a unity lsyncd indicato
 parser.add_argument('-l', '--loglevel', dest='loglevel', help='Options: DEBUG, INFO, WARNING, ERROR, CRITCAL')
 args = parser.parse_args()
 
-numeric_level = 0
+numeric_level = 50
 if (args.loglevel):
     numeric_level = getattr(logging, args.loglevel.upper(), None)
     if not isinstance(numeric_level, int):
