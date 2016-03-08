@@ -18,13 +18,13 @@
 	<rect fill="#dfdbd2" height="20" rx="5" ry="5" transform="rotate(150 50 50) translate(0 -30)" width="7" x="46.5" y="40">
 		<animate attributeName="opacity" begin="0.4166666666666667s" dur="1s" from="1" repeatCount="indefinite" to="0"/>
 	</rect>
-	<rect fill="#00ff07" height="20" rx="5" ry="5" transform="rotate(180 50 50) translate(0 -30)" width="7" x="46.5" y="40">
+	<rect fill="#dfdbd2" height="20" rx="5" ry="5" transform="rotate(180 50 50) translate(0 -30)" width="7" x="46.5" y="40">
 		<animate attributeName="opacity" begin="0.5s" dur="1s" from="1" repeatCount="indefinite" to="0"/>
 	</rect>
-	<rect fill="#00ff07" height="20" rx="5" ry="5" transform="rotate(210 50 50) translate(0 -30)" width="7" x="46.5" y="40">
+	<rect fill="#dfdbd2" height="20" rx="5" ry="5" transform="rotate(210 50 50) translate(0 -30)" width="7" x="46.5" y="40">
 		<animate attributeName="opacity" begin="0.5833333333333334s" dur="1s" from="1" repeatCount="indefinite" to="0"/>
 	</rect>
-	<rect fill="#00ff07" height="20" rx="5" ry="5" transform="rotate(240 50 50) translate(0 -30)" width="7" x="46.5" y="40">
+	<rect fill="#dfdbd2" height="20" rx="5" ry="5" transform="rotate(240 50 50) translate(0 -30)" width="7" x="46.5" y="40">
 		<animate attributeName="opacity" begin="0.6666666666666666s" dur="1s" from="1" repeatCount="indefinite" to="0"/>
 	</rect>
 	<rect fill="#dfdbd2" height="20" rx="5" ry="5" transform="rotate(270 50 50) translate(0 -30)" width="7" x="46.5" y="40">

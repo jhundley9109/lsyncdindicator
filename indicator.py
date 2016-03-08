@@ -63,7 +63,7 @@ class LsyncdIndicator:
         # Found a match that a sync is happening
         if (self.lineType == 'FINISHED' and len(self.syncQueue) == 0):
             self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-            self.ind.set_icon('bluespinner' + str(math.ceil(self.indicatorIconIndex / 4)))
+            self.ind.set_icon('greyspinner' + str(math.ceil(self.indicatorIconIndex / 4)))
         elif (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
             pass
         elif (self.lineType == 'SYNCING'):
