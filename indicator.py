@@ -1,7 +1,12 @@
 #!/usr/bin/python3
 
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk as Gtk
 from gi.repository import GLib as GLib
+gi.require_version('AppIndicator3', '0.1')
+# gi.require_version('AppIndicator7', '1')
+# import appindicator
 from gi.repository import AppIndicator3 as AppIndicator
 import sys
 import os
@@ -34,7 +39,7 @@ class LsyncdIndicator:
         self.ind.set_menu(self.menu)
         self.lastSeekPosition = 0
         self.syncQueue = []
-        self.lastLineType = ''
+        self.lineType = ''
         self.indicatorIconIndex = 1
 
     def menu_setup(self):
@@ -58,7 +63,7 @@ class LsyncdIndicator:
         lastLine = self.tail_log()
         self.update_indicator_index()
 
-        logging.debug("Queue: " + self.lineType + " " + str(self.syncQueue))
+        logging.debug("Queue: " + self.lineType + " " + str(self.syncQueue) + " " + os.path.dirname(os.path.realpath(__file__)))
 
         # Found a match that a sync is happening
         if (self.lineType == 'FINISHED' and len(self.syncQueue) == 0):
@@ -86,7 +91,7 @@ class LsyncdIndicator:
         else:
             self.indicatorIconIndex = self.indicatorIconIndex + 1
 
-    def tail_log(self, lines=1):
+    def tail_log(self):
         # Keep track of the number of bytes has been written to the log file since the last loop
         amountToSeek = 0
         endOfFileByte = self.logfile.seek(0, 2)
