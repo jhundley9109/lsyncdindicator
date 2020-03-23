@@ -1,0 +1,4 @@
+*.sublime-workspace
+*.sublime-project
+nohup.out
+out.txt

@@ -47,17 +47,27 @@ class LsyncdIndicator:
         self.quit_item = Gtk.MenuItem("Quit")
         self.quit_item.connect("activate", self.quit)
         self.quit_item.show()
+
+        self.test_item = Gtk.MenuItem("Open Config")
+        self.test_item.connect("activate", self.open_config)
+        self.test_item.show()
+
+        self.menu.append(self.test_item)
         self.menu.append(self.quit_item)
+
         # self.ind.set_label('lsyncd', 'LSYNCD')
 
     def main(self):
         self.logfile = open('/var/log/lsyncd/lsyncd.log', mode='rb')
-        GLib.timeout_add(150, self.monitor_lsyncd)
+        GLib.timeout_add(200, self.monitor_lsyncd)
         GLib.MainLoop().run()
 
     def quit(self, menuObj):
         GLib.MainLoop().quit()
         sys.exit(0)
+
+    def open_config(test, test1):
+        os.system('xdg-open "' + os.environ['HOME'] + '/.config/lsyncd/config.lua"')
 
     def monitor_lsyncd(self):
         lastLine = self.tail_log()
@@ -67,20 +77,26 @@ class LsyncdIndicator:
 
         # Found a match that a sync is happening
         if (self.lineType == 'FINISHED' and len(self.syncQueue) == 0):
+            print("in case 1", file=sys.stderr)
             self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             self.ind.set_icon('greyspinner' + str(math.ceil(self.indicatorIconIndex / 4)))
         elif (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
+            print("in case 2", file=sys.stderr)
             pass
         elif (self.lineType == 'SYNCING'):
+            print("in case 3", file=sys.stderr)
             self.ind.set_icon('greenspinner' + str(math.ceil(self.indicatorIconIndex % 4) + 1))
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
         elif (self.lineType == 'LSYNCD TERMINATED'):
+            print("in case 4", file=sys.stderr)
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
         elif (self.lineType == 'ERROR'):
+            print("in case 5", file=sys.stderr)
             self.ind.set_icon('redep')
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
         else:
+            print("in case 6", file=sys.stderr)
             logging.warning("unknown something happening. Update some regular expressions")
 
         return True
@@ -95,6 +111,7 @@ class LsyncdIndicator:
         # Keep track of the number of bytes has been written to the log file since the last loop
         amountToSeek = 0
         endOfFileByte = self.logfile.seek(0, 2)
+
         if (self.lastSeekPosition != endOfFileByte):
             amountToSeek = self.logfile.tell() - self.lastSeekPosition
             self.lastSeekPosition = self.logfile.tell()
@@ -107,12 +124,16 @@ class LsyncdIndicator:
 
         line = self.logfile.readline().decode().rstrip()
         lastLine = line
+
         while line != '':
             lastLine = line
             self.lastSeekPosition = self.logfile.tell()
             self.lineType = self.get_type_of_line(line);
+
             if (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
                 self.syncQueue.pop()
+            elif (self.lineType == 'ERROR'):
+                self.syncQueue = []
             elif (self.lineType == 'STARTING SYNC'):
                 self.syncQueue.append(self.lineType)
 
@@ -121,7 +142,7 @@ class LsyncdIndicator:
         return lastLine
 
     def get_type_of_line(self, lastLine):
-        if (re.search('exitcode: 0$', lastLine) or re.search('finished\.$', lastLine)):
+        if (re.search('exitcode: 0$', lastLine) or re.search('finished\.$', lastLine) or re.search('some files vanished', lastLine)):
             return 'FINISHED'
         elif (re.search('Calling rsync with', lastLine) or re.search('recursive startup rsync', lastLine)):
             return 'STARTING SYNC'
