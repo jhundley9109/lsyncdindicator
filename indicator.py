@@ -15,6 +15,14 @@ import logging
 import math
 import argparse
 
+import signal
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 parser = argparse.ArgumentParser(description='Initialize a unity lsyncd indicator')
 parser.add_argument('-l', '--loglevel', dest='loglevel', help='Options: DEBUG, INFO, WARNING, ERROR, CRITCAL')
 args = parser.parse_args()
@@ -44,11 +52,11 @@ class LsyncdIndicator:
 
     def menu_setup(self):
         self.menu = Gtk.Menu()
-        self.quit_item = Gtk.MenuItem("Quit")
+        self.quit_item = Gtk.MenuItem(label="Quit")
         self.quit_item.connect("activate", self.quit)
         self.quit_item.show()
 
-        self.test_item = Gtk.MenuItem("Open Config")
+        self.test_item = Gtk.MenuItem(label="Open Config")
         self.test_item.connect("activate", self.open_config)
         self.test_item.show()
 
@@ -77,23 +85,22 @@ class LsyncdIndicator:
 
         # Found a match that a sync is happening
         if (self.lineType == 'FINISHED' and len(self.syncQueue) == 0):
-            print("in case 1", file=sys.stderr)
             self.ind.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-            self.ind.set_icon('greyspinner' + str(math.ceil(self.indicatorIconIndex / 4)))
+            self.ind.set_icon_full('greyspinner' + str(math.ceil(self.indicatorIconIndex / 4)), "Done syncing")
         elif (self.lineType == 'FINISHED' and len(self.syncQueue) > 0):
-            print("in case 2", file=sys.stderr)
+            # print("in case 2", file=sys.stderr)
             pass
         elif (self.lineType == 'SYNCING'):
-            print("in case 3", file=sys.stderr)
-            self.ind.set_icon('greenspinner' + str(math.ceil(self.indicatorIconIndex % 4) + 1))
+            # print("in case 3", file=sys.stderr)
+            self.ind.set_icon_full('greenspinner' + str(math.ceil(self.indicatorIconIndex % 4) + 1), "Actively syncing")
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
         elif (self.lineType == 'LSYNCD TERMINATED'):
-            print("in case 4", file=sys.stderr)
-            self.ind.set_icon('redep')
+            # print("in case 4", file=sys.stderr)
+            self.ind.set_icon_full('redep', "No lsyncd process found")
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
         elif (self.lineType == 'ERROR'):
             print("in case 5", file=sys.stderr)
-            self.ind.set_icon('redep')
+            self.ind.set_icon_full('redep', "Unhandled Error")
             self.ind.set_status(AppIndicator.IndicatorStatus.ATTENTION)
         else:
             print("in case 6", file=sys.stderr)
